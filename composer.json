@@ -1,0 +1,42 @@
+{
+  "name": "thefrosty/wp-health-check",
+  "description": "A simple WordPress health check endpoint.",
+  "type": "wordpress-muplugin",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Austin Passy",
+      "email": "367897+thefrosty@users.noreply.github.com",
+      "homepage": "https://austin.passy.co/"
+    }
+  ],
+  "config": {
+    "allow-plugins": {
+      "composer/installers": true,
+      "roots/wordpress-core-installer": true
+    },
+    "optimize-autoloader": true,
+    "platform": {
+      "php": "8.3"
+    },
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "require": {
+    "php": "^8.3",
+    "pimple/pimple": "~3.0",
+    "symfony/http-foundation": "^7.2.1",
+    "thefrosty/wp-utilities": "^3.8"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-latest",
+    "roots/wordpress": "^6.8",
+    "symfony/var-dumper": "^7.2",
+    "yoast/phpunit-polyfills": "^4.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "FrostyMedia\\HealthCheck\\": "src/"
+    }
+  }
+}
