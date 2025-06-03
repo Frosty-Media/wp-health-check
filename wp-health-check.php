@@ -17,7 +17,7 @@
  * Release Asset: true
  */
 
-namespace FrostyMedia\HealthCheck;
+namespace FrostyMedia\WpHealthCheck;
 
 defined('ABSPATH') || exit;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FrostyMedia\HealthCheck;
+namespace FrostyMedia\WpHealthCheck;
 
 use Pimple\Container as PimpleContainer;
 use Pimple\ServiceProviderInterface;
@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Class ServiceProvider
- * @package FrostyMedia\HealthCheck
+ * @package FrostyMedia\WpHealthCheck
  */
 class ServiceProvider implements ServiceProviderInterface
 {

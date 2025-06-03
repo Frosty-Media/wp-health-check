@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FrostyMedia\HealthCheck;
+namespace FrostyMedia\WpHealthCheck\HealthCheck;
 
 use Psr\Container\ContainerInterface;
 use RedisCachePro\Diagnostics\Diagnostics;
@@ -61,7 +61,7 @@ use const WPMU_PLUGIN_DIR;
 
 /**
  * Class Utility
- * @package Meta\HealthCheck
+ * @package FrostyMedia\WpHealthCheck\HealthCheck
  */
 class Utility extends AbstractContainerProvider implements HttpFoundationRequestInterface
 {
