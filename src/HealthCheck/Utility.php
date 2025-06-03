@@ -516,8 +516,8 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
             $status = array_merge($status, ['errors' => $this->getWpError('cache')->errors]);
         }
         if (
-            $this->request->query->has('cli') &&
-            in_array($this->request->query->get('cli'), ['flush', 'flushdb'], true) &&
+            $this->getRequest()->query->has('cli') &&
+            in_array($this->getRequest()->query->get('cli'), ['flush', 'flushdb'], true) &&
             is_super_admin()
         ) {
             try {
@@ -527,7 +527,7 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
                 }
 
                 $result = $wp_object_cache->connection()->flushdb();
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 $message = $exception->getMessage();
                 $result = false;
             }
@@ -610,8 +610,8 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
      */
     private function isApplicationJson(): bool
     {
-        return $this->request->query->has('json') ||
-            ($this->request->headers->has('Content-Type') &&
-                $this->request->headers->get('Content-Type') === 'application/json');
+        return $this->getRequest()->query->has('json') ||
+            ($this->getRequest()->headers->has('Content-Type') &&
+                $this->getRequest()->headers->get('Content-Type') === 'application/json');
     }
 }
