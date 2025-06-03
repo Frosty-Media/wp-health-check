@@ -1,2 +1,3 @@
-# wp-health-check
+# WordPress Health Check
+
 Simple WordPress health check endpoint

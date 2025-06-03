@@ -21,6 +21,7 @@ namespace FrostyMedia\WpHealthCheck;
 
 defined('ABSPATH') || exit;
 
+use FrostyMedia\WpHealthCheck\HealthCheck\Utility;
 use ReflectionMethod;
 use TheFrosty\WpUtilities\Plugin\PluginFactory;
 use TheFrosty\WpUtilities\WpAdmin\DisablePluginUpdateCheck;
