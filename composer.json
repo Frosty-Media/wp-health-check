@@ -1,7 +1,7 @@
 {
   "name": "frosty-media/wp-health-check",
   "description": "A simple WordPress health check endpoint.",
-  "type": "wordpress-muplugin",
+  "type": "wordpress-plugin",
   "license": "MIT",
   "authors": [
     {
