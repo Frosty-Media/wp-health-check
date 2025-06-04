@@ -4,74 +4,68 @@ declare(strict_types=1);
 
 namespace FrostyMedia\WpHealthCheck\HealthCheck;
 
-use Psr\Container\ContainerInterface;
 use RedisCachePro\Diagnostics\Diagnostics;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use TheFrosty\WpUtilities\Plugin\AbstractContainerProvider;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestInterface;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestTrait;
 use Throwable;
-use WP;
 use WP_Error;
-use function add_rewrite_rule;
+use WP_REST_Request;
+use function apply_filters;
 use function array_key_exists;
 use function array_merge;
-use function array_shift;
 use function class_exists;
-use function defined;
-use function do_action_ref_array;
-use function esc_html;
-use function fastcgi_finish_request;
 use function file_exists;
 use function file_get_contents;
-use function filter_var;
 use function function_exists;
 use function get_class;
 use function get_num_queries;
-use function http_response_code;
-use function in_array;
+use function human_time_diff;
 use function ini_get;
 use function is_array;
 use function is_numeric;
 use function is_object;
 use function is_scalar;
 use function is_string;
-use function is_super_admin;
 use function json_decode;
 use function json_last_error;
 use function json_last_error_msg;
 use function ksort;
 use function method_exists;
 use function microtime;
-use function nocache_headers;
 use function session_write_close;
 use function shell_exec;
 use function sprintf;
 use function substr;
+use function time;
 use function wp_cache_get;
 use function wp_cache_set;
 use const ABSPATH;
-use const FILTER_VALIDATE_BOOLEAN;
 use const JSON_ERROR_NONE;
-use const JSON_PRETTY_PRINT;
 use const PHP_VERSION;
-use const WPMU_PLUGIN_DIR;
 
 /**
  * Class Utility
  * @package FrostyMedia\WpHealthCheck\HealthCheck
  */
-class Utility extends AbstractContainerProvider implements HttpFoundationRequestInterface
+class Utility implements HttpFoundationRequestInterface
 {
 
     use HttpFoundationRequestTrait;
 
-    public const string TAG_HEALTH_CHECK_RESPONSE = self::HOOK_PREFIX . 'response';
-    public const string HOOK_NAME_QUERY_VAR = self::HOOK_PREFIX . 'query_var';
-    private const string HOOK_PREFIX = 'frosty_media/health_check/';
-    private const int MINIMUM_RESPONSE_TIME_WARN = 4;
+    public const string HOOK_HEALTH_CHECK_RESPONSE = self::HOOK_PREFIX . 'response';
+    public const string HOOK_PREFIX = 'frosty_media/health_check/';
+
+    public const string PARAM_ERRORS = 'errors';
+    public const string PARAM_BUILD = 'build';
+    public const string PARAM_MYSQL = 'mysql';
+    public const string PARAM_PHP = 'php';
+    public const string PARAM_REDIS = 'redis';
+    public const string PARAM_STATUS = 'status';
+    public const string PARAM_WP = 'wp';
+    private const float MINIMUM_RESPONSE_TIME_WARN = 4.0;
     private const string STATUS_CONNECTED = 'CONNECTED';
     private const string STATUS_FAILURE = 'FAILURE';
     private const string STATUS_NOT_CONNECTED = 'NOT CONNECTED';
@@ -79,144 +73,9 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
     private const string STATUS_UNKNOWN = 'UNKNOWN';
     private const string STATUS_WARN = 'WARN';
 
-    /**
-     * Timer.
-     * @var float $timer
-     */
+    public readonly WP_REST_Request $rest_request;
+    private readonly int $time;
     private float $timer;
-
-    /**
-     * Utility constructor.
-     * @param ContainerInterface $container
-     */
-    public function __construct(ContainerInterface $container)
-    {
-        $this->timer = microtime(true);
-        parent::__construct($container);
-    }
-
-    /**
-     * Get the registered "query_var" key.
-     * @return string
-     * @uses apply_filters()
-     */
-    public static function getQueryVar(): string
-    {
-        return apply_filters(self::HOOK_NAME_QUERY_VAR, 'health_check');
-    }
-
-    /**
-     * Add class hooks.
-     */
-    public function addHooks(): void
-    {
-        $this->addAction('init', [$this, 'addRewriteRule']);
-        $this->addFilter('query_vars', [$this, 'queryVars']);
-        $this->addAction('parse_request', [$this, 'parseRequest'], -1);
-    }
-
-
-    /**
-     * Register our rewrite rule.
-     */
-    protected function addRewriteRule(): void
-    {
-        add_rewrite_rule('^health$', sprintf('index.php?%s=true', self::getQueryVar()), 'top');
-    }
-
-    /**
-     * Register new query vars.
-     * @param array $vars
-     * @return array
-     */
-    protected function queryVars(array $vars): array
-    {
-        $vars[] = self::getQueryVar();
-        return $vars;
-    }
-
-    /**
-     * Listen for the health request and process response.
-     */
-    protected function parseRequest(WP $wp): void
-    {
-        if (
-            !isset($wp->query_vars[self::getQueryVar()]) ||
-            !filter_var($wp->query_vars[self::getQueryVar()], FILTER_VALIDATE_BOOLEAN)
-        ) {
-            return;
-        }
-
-        nocache_headers();
-
-        try {
-            global $wpdb;
-
-            if (empty($wpdb)) {
-                throw new RuntimeException('WordPress couldn\'t load `$wpdb`.', Response::HTTP_SERVICE_UNAVAILABLE);
-            }
-
-            $wpdb->suppress_errors();
-            $db_connect = $wpdb->db_connect(false);
-
-            if (!empty($wpdb->last_error)) {
-                throw new RuntimeException(
-                    sprintf('MySQL has an error "%s".', $wpdb->last_error),
-                    Response::HTTP_SERVICE_UNAVAILABLE
-                );
-            }
-
-            // If we didn't connect, we need to double-check `LudicrousDB` and manually bootstrap it.
-            if (!$db_connect) {
-                /**
-                 * @psalm-suppress UndefinedClass
-                 * @psalm-suppress UndefinedConstant
-                 */
-                if (!$wpdb instanceof LudicrousDB) {
-                    if (file_exists(WPMU_PLUGIN_DIR . '/ludicrousdb/ludicrousdb.php')) {
-                        unset($wpdb);
-                        require_once WPMU_PLUGIN_DIR . '/ludicrousdb/ludicrousdb.php';
-                        /**
-                         * @psalm-suppress InvalidGlobal
-                         */
-                        global $wpdb;
-
-                        if (empty($wpdb)) {
-                            throw new RuntimeException(
-                                'WordPress couldn\'t load LudicrousDB `$wpdb`.',
-                                Response::HTTP_SERVICE_UNAVAILABLE
-                            );
-                        }
-
-                        $wpdb->suppress_errors();
-                        $ludicrous_db_connect = $wpdb->db_connect(false);
-                    }
-                    if (!isset($ludicrous_db_connect) || !$ludicrous_db_connect) {
-                        throw new RuntimeException(
-                            'WordPress loaded, but could not connect to the db.',
-                            Response::HTTP_SERVICE_UNAVAILABLE
-                        );
-                    }
-                }
-            }
-
-            if ($this->isResponseTimeTooHigh()) {
-                $status = Response::HTTP_OK; // A slow response should still generate an 'HTTP_OK' response.
-                throw new RuntimeException(
-                    sprintf(
-                        'WordPress loaded, but the response time is slow. Current response is %s.',
-                        $this->timerStop()
-                    ),
-                    Response::HTTP_REQUESTED_RANGE_NOT_SATISFIABLE
-                );
-            }
-        } catch (Throwable $exception) {
-            $this->respond($exception->getCode(), $status ?? $exception->getCode(), $exception->getMessage());
-        }
-
-        // All good
-        $this->respond(Response::HTTP_OK);
-    }
 
     /**
      * Is the current response time too high?
@@ -224,7 +83,16 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
      */
     public function isResponseTimeTooHigh(): bool
     {
-        return $this->timerStop() > (float)self::MINIMUM_RESPONSE_TIME_WARN;
+        return $this->timerStop() > self::MINIMUM_RESPONSE_TIME_WARN;
+    }
+
+    /**
+     * Starts the debugging timer.
+     */
+    public function timerStart(): void
+    {
+        $this->time = time();
+        $this->timer = microtime(true);
     }
 
     /**
@@ -233,66 +101,36 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
      */
     public function timerStop(): float
     {
-        return microtime(true) - $this->timer;
+        $start = $this->timer;
+        $end = microtime(true);
+        $this->timer = $end - $start;
+        return $this->timer;
     }
 
     /**
-     * Prepare the incoming array and `json_encode` it to the screen.
-     * @param int $status Response status to print to the screen.
-     * @param int $header_status Response status to return in the header
-     * @param string|null $message Optional response message
+     * @param WP_REST_Request $request
      */
-    public function respond(int $status, int $header_status = Response::HTTP_OK, ?string $message = null): void
+    public function respond(WP_REST_Request $request): never
     {
-        if ($this->isApplicationJson()) {
-            $this->buildJsonResponse($status, $header_status, $message);
-        }
-        http_response_code($header_status);
-        $checks = $this->buildResponseArray($status, $message);
-        $list = static function (array $checks): string {
-            $html = '<ul>';
-            foreach ($checks as $check => $status) {
-                if (is_array($status)) {
-                    $html .= sprintf('<li><strong>%s</strong>:<ul>', esc_html($check));
-                    foreach ($status as $code => $error) {
-                        $html .= sprintf(
-                            '<li><strong>%s</strong>: %s</li>',
-                            esc_html($code),
-                            esc_html(array_shift($error))
-                        );
-                    }
-                    $html .= '</ul></li>';
-                    continue;
-                }
-                $html .= sprintf('<li><strong>%s</strong>: %s</li>', esc_html($check), $status);
+        sleep(8);
+        $this->rest_request = $request;
+        try {
+            if ($this->isResponseTimeTooHigh()) {
+                $status = Response::HTTP_OK; // A slow response should still generate an 'HTTP_OK' response.
+                throw new RuntimeException(
+                    sprintf(
+                        'WordPress loaded, but the response time was slow. Current response is %s.',
+                        human_time_diff($this->time)
+                    ),
+                    Response::HTTP_REQUESTED_RANGE_NOT_SATISFIABLE
+                );
             }
-            $html .= '</ul>';
+        } catch (Throwable $exception) {
+             $this->buildJsonResponse($exception->getCode(), $status ?? $exception->getCode(), $exception->getMessage());
+        }
 
-            return $html;
-        }
-        ?>
-        <html lang="en_US">
-        <head>
-            <title>Status: <?php
-                echo esc_html($this->getSummaryStatus($status)); ?></title>
-        </head>
-        <ul>
-            <?php
-            foreach ($checks as $check => $_status) : ?>
-                <li>
-                    <strong><?php
-                        echo esc_html($check); ?></strong>:<?php
-                    echo is_array($_status) ? $list($_status) : esc_html($_status); ?>
-                </li>
-            <?php
-            endforeach ?>
-        </ul>
-        </html>
-        <?php
-        session_write_close();
-        if (function_exists('fastcgi_finish_request')) {
-            fastcgi_finish_request();
-        }
+        // All good
+        $this->buildJsonResponse(Response::HTTP_OK);
     }
 
     /**
@@ -307,9 +145,7 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
         ?string $message = null
     ): never {
         $json = new JsonResponse($this->buildResponseArray($status, $message), $header_status);
-        $json->prepare($this->getRequest());
-        $json->setEncodingOptions(JSON_PRETTY_PRINT);
-        $json->send();
+        $json->prepare($this->getRequest())->send();
         session_write_close();
         exit;
     }
@@ -324,24 +160,31 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
     {
         $commit = $this->getBuildInfo('commit');
         $response = [
-            'buildInfo' => [
+            self::PARAM_ERRORS => $message,
+            self::PARAM_BUILD => null,
+            self::PARAM_MYSQL => $this->getMysqlStatus(),
+            self::PARAM_PHP => $this->getPhpStatus(),
+            self::PARAM_REDIS => $this->getObjectCacheStatus(),
+            self::PARAM_STATUS => $this->getSummaryStatus($status),
+            self::PARAM_WP => $this->getWpStatus(),
+        ];
+
+        if ($commit !== null) {
+            $response[self::PARAM_BUILD] = [
                 'commit' => str_contains($commit, 'Error:') ? $commit : substr($commit, 0, 7),
                 'version' => $this->getBuildInfo('version'),
-            ],
-            'mysql' => $this->getMysqlStatus($message),
-            'php' => $this->getPhpStatus(),
-            'redis' => $this->getObjectCacheStatus(),
-            'status' => $this->getSummaryStatus($status),
-            'wp' => $this->getWpStatus(),
-        ];
+            ];
+        }
 
         /**
          * Fires once the complete response array has been created.
          * Useful to add data to the response, like if ($this->getRequest()->query->has('rest')) {}
+         * Or $this->rest_request->has_param('<param>')
+         * @param string[] $response The response array.
          * @param Utility $this The Utility instance.
-         * @param string[] $response The response array (passed by reference).
          */
-        do_action_ref_array(self::TAG_HEALTH_CHECK_RESPONSE, [$this, &$response]);
+        $response = apply_filters(self::HOOK_HEALTH_CHECK_RESPONSE, $response, $this);
+        ksort($response);
 
         return $response;
     }
@@ -349,12 +192,12 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
     /**
      * Get the build info.
      * @param string $key
-     * @return string
+     * @return string|null
      */
-    protected function getBuildInfo(string $key): string
+    protected function getBuildInfo(string $key): ?string
     {
-        if (!defined('ABSPATH')) {
-            return '';
+        if (!$this->rest_request->has_param(self::PARAM_BUILD)) {
+            return null;
         }
         if (file_exists(ABSPATH . '.info')) {
             $file = file_get_contents(ABSPATH . '.info');
@@ -373,11 +216,13 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
 
     /**
      * Get the status (healthcheck) of mysql.
-     * @param string|null $message
-     * @return array
+     * @return array|null
      */
-    protected function getMysqlStatus(?string $message): array
+    protected function getMysqlStatus(): ?array
     {
+        if (!$this->rest_request->has_param(self::PARAM_MYSQL)) {
+            return null;
+        }
         global $wpdb;
 
         if (!empty($wpdb->last_error)) {
@@ -390,10 +235,6 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
                 'mysql-processlist-failed',
                 'Unable to get process list. ' . $wpdb->last_error
             );
-        }
-
-        if ($message) {
-            $this->getWpError('mysql')->add('mysql-has-message', $message);
         }
 
         $status = [
@@ -413,10 +254,13 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
 
     /**
      * Get the status (stats) of PHP.
-     * @return array
+     * @return array|null
      */
-    protected function getPhpStatus(): array
+    protected function getPhpStatus(): ?array
     {
+        if (!$this->rest_request->has_param(self::PARAM_PHP)) {
+            return null;
+        }
         $status = [
             'memory_limit' => ini_get('memory_limit'),
             'version' => PHP_VERSION,
@@ -428,10 +272,13 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
 
     /**
      * Get the status (healthcheck) of the object cache (redis).
-     * @return array
+     * @return array|null
      */
-    protected function getObjectCacheStatus(): array
+    protected function getObjectCacheStatus(): ?array
     {
+        if (!$this->rest_request->has_param(self::PARAM_REDIS)) {
+            return null;
+        }
         global $wp_object_cache, $wpdb;
 
         $set = wp_cache_set('test', 1);
@@ -515,27 +362,6 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
         if ($this->getWpError('cache')->has_errors()) {
             $status = array_merge($status, ['errors' => $this->getWpError('cache')->errors]);
         }
-        if (
-            $this->getRequest()->query->has('cli') &&
-            in_array($this->getRequest()->query->get('cli'), ['flush', 'flushdb'], true) &&
-            is_super_admin()
-        ) {
-            try {
-                $ObjectCachePro = $GLOBALS['ObjectCachePro'];
-                if (method_exists($ObjectCachePro, 'logFlush')) {
-                    $ObjectCachePro->logFlush();
-                }
-
-                $result = $wp_object_cache->connection()->flushdb();
-            } catch (Throwable $exception) {
-                $message = $exception->getMessage();
-                $result = false;
-            }
-
-            $status['flush'] = !$result ?
-                sprintf('Object cache could not be flushed. %s', $message ?? '') :
-                'Object cache flushed.';
-        }
         ksort($status);
 
         return $status;
@@ -563,10 +389,13 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
 
     /**
      * Get the status of WordPress.
-     * @return array
+     * @return array|null
      */
-    protected function getWpStatus(): array
+    protected function getWpStatus(): ?array
     {
+        if (!$this->rest_request->has_param(self::PARAM_WP)) {
+            return null;
+        }
         global $wp_db_version, $wp_version, $wpdb;
         $row = $wpdb->get_row(
             $wpdb->prepare("SELECT option_value FROM $wpdb->options WHERE option_name = %s LIMIT 1", 'db_version')
@@ -580,8 +409,7 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
             'db_version' => is_object($row) && is_numeric($row->option_value) ?
                 (int)$row->option_value : self::STATUS_UNKNOWN,
             'version' => $wp_version ?? self::STATUS_UNKNOWN,
-            'cli' => shell_exec('wp cli version'),
-            'super_admin' => is_super_admin(),
+            'cli' => function_exists('shell_exec') ? shell_exec('wp cli version') : self::STATUS_UNKNOWN,
         ];
         ksort($status);
 
@@ -605,13 +433,17 @@ class Utility extends AbstractContainerProvider implements HttpFoundationRequest
     }
 
     /**
-     * Is the content type JSON or does the query contain JSON?
+     * Are we in a WordPress REST endpoint, or is the content type request set to application/json,
+     * or does the query contain &json?
      * @return bool
      */
     private function isApplicationJson(): bool
     {
-        return $this->getRequest()->query->has('json') ||
-            ($this->getRequest()->headers->has('Content-Type') &&
-                $this->getRequest()->headers->get('Content-Type') === 'application/json');
+        return wp_is_rest_endpoint() ||
+            $this->getRequest()->query->has('json') ||
+            (
+                $this->getRequest()->headers->has('Content-Type') &&
+                $this->getRequest()->headers->get('Content-Type') === 'application/json'
+            );
     }
 }
