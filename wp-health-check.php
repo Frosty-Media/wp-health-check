@@ -21,12 +21,10 @@ namespace FrostyMedia\WpHealthCheck;
 
 defined('ABSPATH') || exit;
 
-use FrostyMedia\WpHealthCheck\HealthCheck\Utility;
-use ReflectionMethod;
+use FrostyMedia\WpHealthCheck\HealthCheck\RestApi;
 use TheFrosty\WpUtilities\Plugin\PluginFactory;
 use TheFrosty\WpUtilities\WpAdmin\DisablePluginUpdateCheck;
 use function defined;
-use function flush_rewrite_rules;
 
 $plugin = PluginFactory::create('wp-health-check');
 $container = $plugin->getContainer();
@@ -34,11 +32,5 @@ $container->register(new ServiceProvider());
 
 $plugin
     ->add(new DisablePluginUpdateCheck())
-    ->add(new Utility($container))
+    ->add(new RestApi($container))
     ->initialize();
-
-register_activation_hook(__FILE__, static function () use ($container): void {
-    $addRewriteRule = new ReflectionMethod(Utility::class, 'addRewriteRule');
-    $addRewriteRule->invoke(new Utility($container));
-    flush_rewrite_rules();
-});
