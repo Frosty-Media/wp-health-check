@@ -5,6 +5,7 @@
 .gitattributes export-ignore
 .gitignore export-ignore
 .typos.toml export-ignore
+composer.lock export-ignore
 docker-compose.yml export-ignore
 phpcs-ruleset.xml export-ignore
 phpstan.neon.dist export-ignore
