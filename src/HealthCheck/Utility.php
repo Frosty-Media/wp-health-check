@@ -6,6 +6,7 @@ namespace FrostyMedia\WpHealthCheck\HealthCheck;
 
 use RedisCachePro\Diagnostics\Diagnostics;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestInterface;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestTrait;
@@ -65,16 +66,25 @@ class Utility implements HttpFoundationRequestInterface
     public const string PARAM_REDIS = 'redis';
     public const string PARAM_STATUS = 'status';
     public const string PARAM_WP = 'wp';
+    public const string STATUS_OK = 'OK';
+    public const string STATUS_FAILURE = 'FAILURE';
+    public const string STATUS_UNKNOWN = 'UNKNOWN';
+    public const string STATUS_WARN = 'WARN';
     private const float MINIMUM_RESPONSE_TIME_WARN = 4.0;
     private const string STATUS_CONNECTED = 'CONNECTED';
-    private const string STATUS_FAILURE = 'FAILURE';
     private const string STATUS_NOT_CONNECTED = 'NOT CONNECTED';
-    private const string STATUS_OK = 'OK';
-    private const string STATUS_UNKNOWN = 'UNKNOWN';
-    private const string STATUS_WARN = 'WARN';
 
     private readonly int $time;
     private float $timer;
+
+    /**
+     * Utility constructor.
+     */
+    public function __construct(?Request $request = null)
+    {
+        $this->setRequest($request);
+        $this->setTime(time())->setTimer(microtime(true));
+    }
 
     /**
      * Is the current response time too high?
@@ -90,7 +100,7 @@ class Utility implements HttpFoundationRequestInterface
         return $this->time;
     }
 
-    public function setTime(int $time): self
+    protected function setTime(int $time): self
     {
         $this->time = $time;
         return $this;
@@ -101,7 +111,7 @@ class Utility implements HttpFoundationRequestInterface
         return $this->timer;
     }
 
-    public function setTimer(float $time): self
+    protected function setTimer(float $time): self
     {
         $this->timer = $time;
         return $this;

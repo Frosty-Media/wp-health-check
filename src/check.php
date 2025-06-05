@@ -3,10 +3,9 @@
 declare(strict_types=1);
 
 use FrostyMedia\WpHealthCheck\HealthCheck\Utility;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-putenv('WORDPRESS_RUN_TYPE=health'); // phpcs:ignore
+putenv('WORDPRESS_RUN_TYPE=health-check'); // phpcs:ignore
 
 // Bootstrap WordPress
 $wpConfig = null;
@@ -29,15 +28,13 @@ foreach (
 
 if (!$wpConfig) {
     echo json_encode([
-        'errors' => 'couldn\'t load wp-config.php',
-        'status' => 'FAILURE'
+        'errors' => 'Couldn\'t locate wp-config.php',
+        'status' => 'FAILURE',
     ]);
     exit;
 }
 
 $utility = new Utility();
-$utility->setRequest(Request::createFromGlobals());
-$utility->setTime(time())->setTimer(microtime(true));
 
 nocache_headers();
 
@@ -101,7 +98,10 @@ try {
     if ($utility->isResponseTimeTooHigh()) {
         $status = Response::HTTP_OK; // A slow response should still generate a 'HTTP_OK' response.
         throw new RuntimeException(
-            sprintf('WordPress loaded, but the response time is slow. Current response is %s.', human_time_diff($utility->getTime())),
+            sprintf(
+                'WordPress loaded, but the response time is slow. Current response is %s.',
+                human_time_diff($utility->getTime())
+            ),
             Response::HTTP_REQUESTED_RANGE_NOT_SATISFIABLE
         );
     }
