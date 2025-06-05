@@ -11,6 +11,7 @@ use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestInterface;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestTrait;
 use WP_Error;
 use function apply_filters;
+use function array_fill;
 use function array_key_exists;
 use function array_merge;
 use function class_exists;
@@ -118,23 +119,27 @@ class Utility implements HttpFoundationRequestInterface
      */
     public function respond(): never
     {
-        [$status, $header_status, $message] = func_get_args();
-        sleep(8);
+        $defaults = array_fill(0, 3, null);
+        [$status, $header_status, $message] = func_get_args() + $defaults;
+        if ($status instanceof \WP_REST_Request) {
+            $status = Response::HTTP_OK;
+        }
         $this->buildJsonResponse($status ?? Response::HTTP_OK, $header_status, $message);
     }
 
     /**
      * Prepare the incoming array and `json_encode` it to the screen.
      * @param int $status Response status to print to the screen.
-     * @param int $header_status Response status to return in the header
+     * @param int|null $header_status Response status to return in the header
      * @param string|null $message Optional response message
+     * @return never
      */
     protected function buildJsonResponse(
         int $status,
-        int $header_status = Response::HTTP_OK,
+        ?int $header_status = null,
         ?string $message = null
     ): never {
-        $json = new JsonResponse($this->buildResponseArray($status, $message), $header_status);
+        $json = new JsonResponse($this->buildResponseArray($status, $message), $header_status ?? Response::HTTP_OK);
         $json->prepare($this->getRequest())->send();
         session_write_close();
         exit;

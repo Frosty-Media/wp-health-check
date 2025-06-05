@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace FrostyMedia\WpHealthCheck\RestApi;
 
 use FrostyMedia\WpHealthCheck\HealthCheck\Utility;
+use Symfony\Component\HttpFoundation\Request;
 use WP_REST_Server;
 use function apply_filters;
 use function is_user_logged_in;
+use function microtime;
 use function register_rest_route;
+use function time;
 
 /**
  * Class RestApi
@@ -26,11 +29,14 @@ class RestApi
      */
     public function initializeRoute(): void
     {
+        $utility = new Utility();
+        $utility->setRequest(Request::createFromGlobals());
+        $utility->setTime(time())->setTimer(microtime(true));
         register_rest_route(
             self::NAMESPACE,
             self::ROUTE,
             [
-                'callback' => [new Utility(), 'respond'],
+                'callback' => [$utility, 'respond'],
                 'methods'  => WP_REST_Server::READABLE,
                 'permission_callback' => fn(): bool => $this->permissionCallback(),
             ]
