@@ -36,7 +36,7 @@ jobs:
       - name: Run PHPCS
         continue-on-error: false
         id: phpcs
-        run: composer phpcs
+        run: phpcs --standard=phpcs-ruleset.xml
         env:
           CHANGED_FILES: ${{ steps.ci-setup.outputs.files }}
           PHP_VERSION: ${{ matrix.php-version }}
