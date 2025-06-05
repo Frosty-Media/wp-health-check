@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestInterface;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestTrait;
 use WP_Error;
+use WP_REST_Request;
 use function apply_filters;
 use function array_fill;
 use function array_key_exists;
@@ -17,6 +18,7 @@ use function array_merge;
 use function class_exists;
 use function file_exists;
 use function file_get_contents;
+use function func_get_arg;
 use function func_get_args;
 use function function_exists;
 use function get_class;
@@ -119,11 +121,14 @@ class Utility implements HttpFoundationRequestInterface
      */
     public function respond(): never
     {
+        // If we are in a WordPress REST request.
+        if (func_get_arg(0) instanceof WP_REST_Request) {
+            $this->buildJsonResponse(Response::HTTP_OK);
+        }
+
         $defaults = array_fill(0, 3, null);
         [$status, $header_status, $message] = func_get_args() + $defaults;
-        if ($status instanceof \WP_REST_Request) {
-            $status = Response::HTTP_OK;
-        }
+
         $this->buildJsonResponse($status ?? Response::HTTP_OK, $header_status, $message);
     }
 
