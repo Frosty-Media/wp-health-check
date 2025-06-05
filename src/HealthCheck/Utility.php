@@ -12,9 +12,10 @@ use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestTrait;
 use WP_Error;
 use WP_REST_Request;
 use function apply_filters;
-use function array_fill;
+use function array_filter;
 use function array_key_exists;
 use function array_merge;
+use function array_pad;
 use function class_exists;
 use function file_exists;
 use function file_get_contents;
@@ -42,6 +43,7 @@ use function substr;
 use function wp_cache_get;
 use function wp_cache_set;
 use const ABSPATH;
+use const ARRAY_FILTER_USE_BOTH;
 use const JSON_ERROR_NONE;
 use const PHP_VERSION;
 
@@ -126,8 +128,7 @@ class Utility implements HttpFoundationRequestInterface
             $this->buildJsonResponse(Response::HTTP_OK);
         }
 
-        $defaults = array_fill(0, 3, null);
-        [$status, $header_status, $message] = func_get_args() + $defaults;
+        [$status, $header_status, $message] = array_pad(func_get_args(), 3, null);
 
         $this->buildJsonResponse($status ?? Response::HTTP_OK, $header_status, $message);
     }
@@ -185,7 +186,11 @@ class Utility implements HttpFoundationRequestInterface
         $response = apply_filters(self::HOOK_HEALTH_CHECK_RESPONSE, $response, $this);
         ksort($response);
 
-        return $response;
+        return array_filter(
+            $response,
+            static fn($value, $key) => !empty($value) || $key === self::PARAM_ERRORS,
+            ARRAY_FILTER_USE_BOTH
+        );
     }
 
     /**
