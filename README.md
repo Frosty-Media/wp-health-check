@@ -1,5 +1,13 @@
 # WordPress Health Check
 
+![WordPress Health Check](.github/wp-tally.png?raw=true "WordPress Health Check")
+
+[![PHP from Packagist](https://img.shields.io/packagist/php-v/Frosty-Media/wp-health-check.svg)]()
+[![Latest Stable Version](https://img.shields.io/packagist/v/Frosty-Media/wp-health-check.svg)](https://packagist.org/packages/Frosty-Media/wp-health-check)
+[![Total Downloads](https://img.shields.io/packagist/dt/Frosty-Media/wp-health-check.svg)](https://packagist.org/packages/Frosty-Media/wp-health-check)
+[![License](https://img.shields.io/packagist/l/Frosty-Media/wp-health-check.svg)](https://packagist.org/Frosty-Media/wp-health-check)
+![Build Status](https://github.com/Frosty-Media/wp-health-check/actions/workflows/main.yml/badge.svg)
+
 Simple WordPress health check endpoint
 
 #### Installation
