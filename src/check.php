@@ -28,7 +28,7 @@ foreach (
 }
 
 if (!$wpConfig) {
-    json_encode([
+    echo json_encode([
         'errors' => 'couldn\'t load wp-config.php',
         'status' => 'FAILURE'
     ]);
