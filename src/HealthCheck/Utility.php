@@ -5,24 +5,21 @@ declare(strict_types=1);
 namespace FrostyMedia\WpHealthCheck\HealthCheck;
 
 use RedisCachePro\Diagnostics\Diagnostics;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestInterface;
 use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestTrait;
-use Throwable;
 use WP_Error;
-use WP_REST_Request;
 use function apply_filters;
 use function array_key_exists;
 use function array_merge;
 use function class_exists;
 use function file_exists;
 use function file_get_contents;
+use function func_get_args;
 use function function_exists;
 use function get_class;
 use function get_num_queries;
-use function human_time_diff;
 use function ini_get;
 use function is_array;
 use function is_numeric;
@@ -39,7 +36,6 @@ use function session_write_close;
 use function shell_exec;
 use function sprintf;
 use function substr;
-use function time;
 use function wp_cache_get;
 use function wp_cache_set;
 use const ABSPATH;
@@ -57,7 +53,6 @@ class Utility implements HttpFoundationRequestInterface
 
     public const string HOOK_HEALTH_CHECK_RESPONSE = self::HOOK_PREFIX . 'response';
     public const string HOOK_PREFIX = 'frosty_media/health_check/';
-
     public const string PARAM_ERRORS = 'errors';
     public const string PARAM_BUILD = 'build';
     public const string PARAM_MYSQL = 'mysql';
@@ -73,7 +68,6 @@ class Utility implements HttpFoundationRequestInterface
     private const string STATUS_UNKNOWN = 'UNKNOWN';
     private const string STATUS_WARN = 'WARN';
 
-    public readonly WP_REST_Request $rest_request;
     private readonly int $time;
     private float $timer;
 
@@ -83,54 +77,50 @@ class Utility implements HttpFoundationRequestInterface
      */
     public function isResponseTimeTooHigh(): bool
     {
-        return $this->timerStop() > self::MINIMUM_RESPONSE_TIME_WARN;
+        return $this->stopTimer() > self::MINIMUM_RESPONSE_TIME_WARN;
     }
 
-    /**
-     * Starts the debugging timer.
-     */
-    public function timerStart(): void
+    public function getTime(): int
     {
-        $this->time = time();
-        $this->timer = microtime(true);
+        return $this->time;
+    }
+
+    public function setTime(int $time): self
+    {
+        $this->time = $time;
+        return $this;
+    }
+
+    public function getTimer(): float
+    {
+        return $this->timer;
+    }
+
+    public function setTimer(float $time): self
+    {
+        $this->timer = $time;
+        return $this;
     }
 
     /**
-     * Stops the debugging timer.
+     * Stops the timer.
      * @return float Total time spent on the query, in seconds
      */
-    public function timerStop(): float
+    public function stopTimer(): float
     {
-        $start = $this->timer;
+        $start = $this->getTimer();
         $end = microtime(true);
         $this->timer = $end - $start;
         return $this->timer;
     }
 
     /**
-     * @param WP_REST_Request $request
      */
-    public function respond(WP_REST_Request $request): never
+    public function respond(): never
     {
+        [$status, $header_status, $message] = func_get_args();
         sleep(8);
-        $this->rest_request = $request;
-        try {
-            if ($this->isResponseTimeTooHigh()) {
-                $status = Response::HTTP_OK; // A slow response should still generate an 'HTTP_OK' response.
-                throw new RuntimeException(
-                    sprintf(
-                        'WordPress loaded, but the response time was slow. Current response is %s.',
-                        human_time_diff($this->time)
-                    ),
-                    Response::HTTP_REQUESTED_RANGE_NOT_SATISFIABLE
-                );
-            }
-        } catch (Throwable $exception) {
-             $this->buildJsonResponse($exception->getCode(), $status ?? $exception->getCode(), $exception->getMessage());
-        }
-
-        // All good
-        $this->buildJsonResponse(Response::HTTP_OK);
+        $this->buildJsonResponse($status ?? Response::HTTP_OK, $header_status, $message);
     }
 
     /**
@@ -158,7 +148,6 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function buildResponseArray(int $status = Response::HTTP_BAD_REQUEST, ?string $message = null): array
     {
-        $commit = $this->getBuildInfo('commit');
         $response = [
             self::PARAM_ERRORS => $message,
             self::PARAM_BUILD => null,
@@ -169,6 +158,7 @@ class Utility implements HttpFoundationRequestInterface
             self::PARAM_WP => $this->getWpStatus(),
         ];
 
+        $commit = $this->getBuildInfo('commit');
         if ($commit !== null) {
             $response[self::PARAM_BUILD] = [
                 'commit' => str_contains($commit, 'Error:') ? $commit : substr($commit, 0, 7),
@@ -179,7 +169,6 @@ class Utility implements HttpFoundationRequestInterface
         /**
          * Fires once the complete response array has been created.
          * Useful to add data to the response, like if ($this->getRequest()->query->has('rest')) {}
-         * Or $this->rest_request->has_param('<param>')
          * @param string[] $response The response array.
          * @param Utility $this The Utility instance.
          */
@@ -196,7 +185,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getBuildInfo(string $key): ?string
     {
-        if (!$this->rest_request->has_param(self::PARAM_BUILD)) {
+        if (!$this->getRequest()->query->has(self::PARAM_BUILD)) {
             return null;
         }
         if (file_exists(ABSPATH . '.info')) {
@@ -220,7 +209,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getMysqlStatus(): ?array
     {
-        if (!$this->rest_request->has_param(self::PARAM_MYSQL)) {
+        if (!$this->getRequest()->query->has(self::PARAM_MYSQL)) {
             return null;
         }
         global $wpdb;
@@ -258,7 +247,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getPhpStatus(): ?array
     {
-        if (!$this->rest_request->has_param(self::PARAM_PHP)) {
+        if (!$this->getRequest()->query->has(self::PARAM_PHP)) {
             return null;
         }
         $status = [
@@ -276,7 +265,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getObjectCacheStatus(): ?array
     {
-        if (!$this->rest_request->has_param(self::PARAM_REDIS)) {
+        if (!$this->getRequest()->query->has(self::PARAM_REDIS)) {
             return null;
         }
         global $wp_object_cache, $wpdb;
@@ -393,7 +382,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getWpStatus(): ?array
     {
-        if (!$this->rest_request->has_param(self::PARAM_WP)) {
+        if (!$this->getRequest()->query->has(self::PARAM_WP)) {
             return null;
         }
         global $wp_db_version, $wp_version, $wpdb;
@@ -430,20 +419,5 @@ class Utility implements HttpFoundationRequestInterface
         }
 
         return $wp_error[$key];
-    }
-
-    /**
-     * Are we in a WordPress REST endpoint, or is the content type request set to application/json,
-     * or does the query contain &json?
-     * @return bool
-     */
-    private function isApplicationJson(): bool
-    {
-        return wp_is_rest_endpoint() ||
-            $this->getRequest()->query->has('json') ||
-            (
-                $this->getRequest()->headers->has('Content-Type') &&
-                $this->getRequest()->headers->get('Content-Type') === 'application/json'
-            );
     }
 }
