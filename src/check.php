@@ -28,7 +28,11 @@ foreach (
 }
 
 if (!$wpConfig) {
-    die("couldn't load wp-config.php");
+    json_encode([
+        'errors' => 'couldn\'t load wp-config.php',
+        'status' => 'FAILURE'
+    ]);
+    exit;
 }
 
 $utility = new Utility();
