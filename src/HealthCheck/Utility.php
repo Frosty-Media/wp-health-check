@@ -20,6 +20,7 @@ use function array_pad;
 use function class_exists;
 use function file_exists;
 use function file_get_contents;
+use function filter_var;
 use function func_get_arg;
 use function func_get_args;
 use function function_exists;
@@ -45,6 +46,7 @@ use function wp_cache_get;
 use function wp_cache_set;
 use const ABSPATH;
 use const ARRAY_FILTER_USE_BOTH;
+use const FILTER_VALIDATE_BOOLEAN;
 use const JSON_ERROR_NONE;
 use const PHP_VERSION;
 
@@ -62,8 +64,8 @@ class Utility implements HttpFoundationRequestInterface
     public const string PARAM_ERRORS = 'errors';
     public const string PARAM_BUILD = 'build';
     public const string PARAM_MYSQL = 'mysql';
+    public const string PARAM_OBJECT_CACHE = 'object_cache';
     public const string PARAM_PHP = 'php';
-    public const string PARAM_REDIS = 'redis';
     public const string PARAM_STATUS = 'status';
     public const string PARAM_WP = 'wp';
     public const string STATUS_OK = 'OK';
@@ -174,7 +176,7 @@ class Utility implements HttpFoundationRequestInterface
             self::PARAM_BUILD => null,
             self::PARAM_MYSQL => $this->getMysqlStatus(),
             self::PARAM_PHP => $this->getPhpStatus(),
-            self::PARAM_REDIS => $this->getObjectCacheStatus(),
+            self::PARAM_OBJECT_CACHE => $this->getObjectCacheStatus(),
             self::PARAM_STATUS => $this->getSummaryStatus($status),
             self::PARAM_WP => $this->getWpStatus(),
         ];
@@ -210,7 +212,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getBuildInfo(string $key): ?string
     {
-        if (!$this->getRequest()->query->has(self::PARAM_BUILD)) {
+        if ($this->hasParam(self::PARAM_BUILD)) {
             return null;
         }
         if (file_exists(ABSPATH . '.info')) {
@@ -234,7 +236,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getMysqlStatus(): ?array
     {
-        if (!$this->getRequest()->query->has(self::PARAM_MYSQL)) {
+        if ($this->hasParam(self::PARAM_MYSQL)) {
             return null;
         }
         global $wpdb;
@@ -272,7 +274,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getPhpStatus(): ?array
     {
-        if (!$this->getRequest()->query->has(self::PARAM_PHP)) {
+        if ($this->hasParam(self::PARAM_PHP)) {
             return null;
         }
         $status = [
@@ -285,12 +287,12 @@ class Utility implements HttpFoundationRequestInterface
     }
 
     /**
-     * Get the status (healthcheck) of the object cache (redis).
+     * Get the status (healthcheck) of the object cache.
      * @return array|null
      */
     protected function getObjectCacheStatus(): ?array
     {
-        if (!$this->getRequest()->query->has(self::PARAM_REDIS)) {
+        if ($this->hasParam(self::PARAM_OBJECT_CACHE)) {
             return null;
         }
         global $wp_object_cache, $wpdb;
@@ -407,7 +409,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     protected function getWpStatus(): ?array
     {
-        if (!$this->getRequest()->query->has(self::PARAM_WP)) {
+        if ($this->hasParam(self::PARAM_WP)) {
             return null;
         }
         global $wp_db_version, $wp_version, $wpdb;
@@ -444,5 +446,16 @@ class Utility implements HttpFoundationRequestInterface
         }
 
         return $wp_error[$key];
+    }
+
+    /**
+     * Validate a passed parameter.
+     * @param string $param
+     * @return bool
+     */
+    private function hasParam(string $param): bool
+    {
+        return $this->getRequest()->query->has($param) &&
+            filter_var($this->getRequest()->query->get($param), FILTER_VALIDATE_BOOLEAN) === true;
     }
 }

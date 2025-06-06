@@ -75,20 +75,20 @@ class RestApi
                     'type' => ['string', 'null'],
                 ],
             ],
+            Utility::PARAM_OBJECT_CACHE => [
+                'type' => ['array', 'null'],
+                'description' => 'Object cache information.',
+                'items' => [
+                    'enum' => ['cache', 'client', 'flush', 'errors', 'hits', 'misses', 'status'],
+                    'type' => ['string', 'null'],
+                ],
+            ],
             Utility::PARAM_PHP => [
                 'type' => ['array', 'null'],
                 'description' => 'PHP information.',
                 'items' => [
                     'enum' => ['memory_limit', 'version'],
                     'type' => 'string',
-                ],
-            ],
-            Utility::PARAM_REDIS => [
-                'type' => ['array', 'null'],
-                'description' => 'Object cache information.',
-                'items' => [
-                    'enum' => ['cache', 'client', 'flush', 'errors', 'hits', 'misses', 'status'],
-                    'type' => ['string', 'null'],
                 ],
             ],
             Utility::PARAM_STATUS => [
