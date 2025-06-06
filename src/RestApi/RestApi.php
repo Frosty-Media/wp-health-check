@@ -18,7 +18,7 @@ class RestApi
 {
 
     public const string HOOK_NAME_REQUIRE_REST_AUTHENTICATION = Utility::HOOK_PREFIX . 'rest_permission_callback';
-    protected const string NAMESPACE = 'health/';
+    protected const string NAMESPACE = 'health';
     protected const string ROUTE = 'check';
 
     /**
