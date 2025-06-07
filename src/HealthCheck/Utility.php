@@ -24,7 +24,6 @@ use function filter_var;
 use function func_get_arg;
 use function func_get_args;
 use function function_exists;
-use function get_class;
 use function get_num_queries;
 use function ini_get;
 use function is_array;
@@ -81,6 +80,7 @@ class Utility implements HttpFoundationRequestInterface
 
     /**
      * Utility constructor.
+     * @param Request|null $request
      */
     public function __construct(?Request $request = null)
     {
@@ -132,6 +132,7 @@ class Utility implements HttpFoundationRequestInterface
     }
 
     /**
+     * Respond with our JSON data.
      */
     public function respond(): never
     {
@@ -255,8 +256,8 @@ class Utility implements HttpFoundationRequestInterface
 
         $status = [
             'errors' => null,
-            'extension' => is_object($wpdb->dbh) ? get_class($wpdb->dbh) : self::STATUS_UNKNOWN,
-            'instance' => get_class($wpdb),
+            'extension' => is_object($wpdb->dbh) ? $wpdb->dbh::class : self::STATUS_UNKNOWN,
+            'instance' => $wpdb::class,
             'num_queries' => get_num_queries(),
             'status' => self::STATUS_OK,
         ];
@@ -353,16 +354,17 @@ class Utility implements HttpFoundationRequestInterface
          */
         $status = [
             'cache' => null,
-            'client' => $wp_object_cache->redis_client ?? null, // Removed WP_REDIS_CLIENT (not in use, but defined)
+            'client' => $wp_object_cache->redis_client ?? null, // Removed WP_REDIS_CLIENT (not in use, but defined).
             'flush' => null,
             'errors' => null,
             'hits' => $wp_object_cache->cache_hits,
             'misses' => $wp_object_cache->cache_misses,
             'status' => null,
         ];
-        // Redis Cache (plugin) 1 & 2
+        // Redis Cache (plugin) 1 & 2.
         if (method_exists($wp_object_cache, 'redis_status')) {
             $status['status'] = $wp_object_cache->redis_status() ? self::STATUS_CONNECTED : self::STATUS_NOT_CONNECTED;
+            // phpcs:ignore.
         } elseif (!empty($GLOBALS['RedisCachePro']) && class_exists('\RedisCachePro\Diagnostics\Diagnostics')) {
             /**
              * @psalm-suppress UndefinedClass
@@ -392,11 +394,17 @@ class Utility implements HttpFoundationRequestInterface
     {
         if ($this->getWpError('mysql')->has_errors() && $this->getWpError('cache')->has_errors()) {
             return self::STATUS_WARN;
-        } elseif ($status_code >= Response::HTTP_OK && $status_code < Response::HTTP_MULTIPLE_CHOICES) {
+        }
+
+        if ($status_code >= Response::HTTP_OK && $status_code < Response::HTTP_MULTIPLE_CHOICES) {
             return self::STATUS_OK;
-        } elseif ($status_code >= Response::HTTP_BAD_REQUEST && $status_code < Response::HTTP_INTERNAL_SERVER_ERROR) {
+        }
+
+        if ($status_code >= Response::HTTP_BAD_REQUEST && $status_code < Response::HTTP_INTERNAL_SERVER_ERROR) {
             return self::STATUS_WARN;
-        } elseif ($status_code >= Response::HTTP_INTERNAL_SERVER_ERROR && $status_code < 600) {
+        }
+
+        if ($status_code >= Response::HTTP_INTERNAL_SERVER_ERROR && $status_code < 600) {
             return self::STATUS_FAILURE;
         }
 
