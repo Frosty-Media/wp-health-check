@@ -7,7 +7,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 putenv('WORDPRESS_RUN_TYPE=health-check'); // phpcs:ignore
 
-// Bootstrap WordPress
+// Bootstrap WordPress.
 $wpConfig = null;
 foreach (
     [
@@ -112,5 +112,5 @@ try {
     $utility->respond($exception->getCode(), $status ?? $exception->getCode(), $exception->getMessage());
 }
 
-// All good
+// All good.
 $utility->respond(Response::HTTP_OK);
