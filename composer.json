@@ -44,5 +44,10 @@
     "psr-4": {
       "FrostyMedia\\WpHealthCheck\\": "src/"
     }
+  },
+  "scripts": {
+    "phpcs": [
+      "./vendor/bin/phpcs --standard=phpcs-ruleset.xml"
+    ]
   }
 }
