@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use FrostyMedia\WpHealthCheck\HealthCheck\Utility;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 putenv('WORDPRESS_RUN_TYPE=health-check'); // phpcs:ignore
@@ -34,7 +35,7 @@ if (!$wpConfig) {
     exit;
 }
 
-$utility = new Utility();
+$utility = new Utility(Request::createFromGlobals());
 
 nocache_headers();
 
@@ -64,8 +65,8 @@ try {
     // If we didn't connect, we need to double-check `LudicrousDB` and manually bootstrap it.
     if (!$db_connect) {
         /**
+         * @psalm-suppress MissingFile
          * @psalm-suppress UndefinedClass
-         * @psalm-suppress UndefinedConstant
          */
         if (!$wpdb instanceof LudicrousDB) {
             if (file_exists(WPMU_PLUGIN_DIR . '/ludicrousdb/ludicrousdb.php')) {

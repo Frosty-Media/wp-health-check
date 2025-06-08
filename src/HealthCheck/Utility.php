@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace FrostyMedia\WpHealthCheck\HealthCheck;
 
-use RedisCachePro\Diagnostics\Diagnostics;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestInterface;
-use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestTrait;
 use WP_Error;
 use WP_REST_Request;
 use function apply_filters;
@@ -53,10 +50,8 @@ use const PHP_VERSION;
  * Class Utility
  * @package FrostyMedia\WpHealthCheck\HealthCheck
  */
-class Utility implements HttpFoundationRequestInterface
+class Utility
 {
-
-    use HttpFoundationRequestTrait;
 
     public const string HOOK_HEALTH_CHECK_RESPONSE = self::HOOK_PREFIX . 'response';
     public const string HOOK_PREFIX = 'frosty_media/health_check/';
@@ -75,44 +70,64 @@ class Utility implements HttpFoundationRequestInterface
     private const string STATUS_CONNECTED = 'CONNECTED';
     private const string STATUS_NOT_CONNECTED = 'NOT CONNECTED';
 
-    private readonly int $time;
+    private int $time;
     private float $timer;
 
     /**
      * Utility constructor.
-     * @param Request|null $request
+     * @param Request $request
      */
-    public function __construct(?Request $request = null)
+    public function __construct(private readonly Request $request)
     {
-        $this->setRequest($request);
         $this->setTime(time())->setTimer(microtime(true));
     }
 
     /**
      * Is the current response time too high?
      * @return bool If the timer is greater than the `MIN_RESPONSE_TIME_WARN` return true.
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function isResponseTimeTooHigh(): bool
     {
         return $this->stopTimer() > self::MINIMUM_RESPONSE_TIME_WARN;
     }
 
+    /**
+     * Get the time.
+     * @return int
+     * @psalm-suppress PossiblyUnusedMethod
+     */
     public function getTime(): int
     {
         return $this->time;
     }
 
+    /**
+     * Set the time.
+     * @param int $time
+     * @return $this
+     */
     protected function setTime(int $time): self
     {
         $this->time = $time;
         return $this;
     }
 
+    /**
+     * Get the timer.
+     * @return float
+     * @psalm-suppress PossiblyUnusedMethod
+     */
     public function getTimer(): float
     {
         return $this->timer;
     }
 
+    /**
+     * Set the timer.
+     * @param float $time
+     * @return $this
+     */
     protected function setTimer(float $time): self
     {
         $this->timer = $time;
@@ -133,6 +148,7 @@ class Utility implements HttpFoundationRequestInterface
 
     /**
      * Respond with our JSON data.
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function respond(): never
     {
@@ -159,7 +175,7 @@ class Utility implements HttpFoundationRequestInterface
         ?string $message = null
     ): never {
         $json = new JsonResponse($this->buildResponseArray($status, $message), $header_status ?? Response::HTTP_OK);
-        $json->prepare($this->getRequest())->send();
+        $json->prepare($this->request)->send();
         session_write_close();
         exit;
     }
@@ -192,7 +208,7 @@ class Utility implements HttpFoundationRequestInterface
 
         /**
          * Fires once the complete response array has been created.
-         * Useful to add data to the response, like if ($this->getRequest()->query->has('rest')) {}
+         * Useful to add data to the response, like if ($this->request->query->has('rest')) {}
          * @param string[] $response The response array.
          * @param Utility $this The Utility instance.
          */
@@ -367,9 +383,10 @@ class Utility implements HttpFoundationRequestInterface
             // phpcs:ignore.
         } elseif (!empty($GLOBALS['RedisCachePro']) && class_exists('\RedisCachePro\Diagnostics\Diagnostics')) {
             /**
+             * @phpcs:disable SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly.ReferenceViaFullyQualifiedName
              * @psalm-suppress UndefinedClass
              */
-            $diagnostics = (new Diagnostics($wp_object_cache))->toArray();
+            $diagnostics = (new \RedisCachePro\Diagnostics\Diagnostics($wp_object_cache))->toArray();
             $status['connector'] = $diagnostics['config']['connector']->text ?? self::STATUS_UNKNOWN;
             $status['cache'] = $diagnostics['config']['cache']->text ?? self::STATUS_UNKNOWN;
             $status['status'] = $diagnostics['general']['status']->text ?? self::STATUS_UNKNOWN;
@@ -463,7 +480,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     private function hasParam(string $param): bool
     {
-        return $this->getRequest()->query->has($param) &&
-            filter_var($this->getRequest()->query->get($param), FILTER_VALIDATE_BOOLEAN) === true;
+        return $this->request->query->has($param) &&
+            filter_var($this->request->query->get($param), FILTER_VALIDATE_BOOLEAN) === true;
     }
 }

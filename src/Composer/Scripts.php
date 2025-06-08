@@ -16,6 +16,7 @@ use function symlink;
 /**
  * Class Scripts
  * @package FrostyMedia\WpHealthCheck
+ * @psalm-api
  */
 class Scripts
 {
