@@ -383,6 +383,7 @@ class Utility
             // phpcs:ignore.
         } elseif (!empty($GLOBALS['RedisCachePro']) && class_exists('\RedisCachePro\Diagnostics\Diagnostics')) {
             /**
+             * @phpcs:disable SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly.ReferenceViaFullyQualifiedName
              * @psalm-suppress UndefinedClass
              */
             $diagnostics = (new \RedisCachePro\Diagnostics\Diagnostics($wp_object_cache))->toArray();
