@@ -73,7 +73,7 @@ class Utility
     private const string STATUS_CONNECTED = 'CONNECTED';
     private const string STATUS_NOT_CONNECTED = 'NOT CONNECTED';
 
-    private readonly int $time;
+    private int $time;
     private float $timer;
 
     /**
