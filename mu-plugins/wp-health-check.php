@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Plugin Name: WP Health Check
  * Plugin URI: https://github.com/Frosty-Media/wp-health-check
  * Description: A simple WordPress health check endpoint.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Austin Passy
  * Author URI: https://austin.passy.co
  */
