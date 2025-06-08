@@ -53,10 +53,8 @@ use const PHP_VERSION;
  * Class Utility
  * @package FrostyMedia\WpHealthCheck\HealthCheck
  */
-class Utility implements HttpFoundationRequestInterface
+class Utility
 {
-
-    use HttpFoundationRequestTrait;
 
     public const string HOOK_HEALTH_CHECK_RESPONSE = self::HOOK_PREFIX . 'response';
     public const string HOOK_PREFIX = 'frosty_media/health_check/';
@@ -80,11 +78,10 @@ class Utility implements HttpFoundationRequestInterface
 
     /**
      * Utility constructor.
-     * @param Request|null $request
+     * @param Request $request
      */
-    public function __construct(?Request $request = null)
+    public function __construct(private readonly Request $request)
     {
-        $this->setRequest($request);
         $this->setTime(time())->setTimer(microtime(true));
     }
 
@@ -159,7 +156,7 @@ class Utility implements HttpFoundationRequestInterface
         ?string $message = null
     ): never {
         $json = new JsonResponse($this->buildResponseArray($status, $message), $header_status ?? Response::HTTP_OK);
-        $json->prepare($this->getRequest())->send();
+        $json->prepare($this->request)->send();
         session_write_close();
         exit;
     }
@@ -192,7 +189,7 @@ class Utility implements HttpFoundationRequestInterface
 
         /**
          * Fires once the complete response array has been created.
-         * Useful to add data to the response, like if ($this->getRequest()->query->has('rest')) {}
+         * Useful to add data to the response, like if ($this->request->query->has('rest')) {}
          * @param string[] $response The response array.
          * @param Utility $this The Utility instance.
          */
@@ -463,7 +460,7 @@ class Utility implements HttpFoundationRequestInterface
      */
     private function hasParam(string $param): bool
     {
-        return $this->getRequest()->query->has($param) &&
-            filter_var($this->getRequest()->query->get($param), FILTER_VALIDATE_BOOLEAN) === true;
+        return $this->request->query->has($param) &&
+            filter_var($this->request->query->get($param), FILTER_VALIDATE_BOOLEAN) === true;
     }
 }

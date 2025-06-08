@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace FrostyMedia\WpHealthCheck\RestApi;
 
 use FrostyMedia\WpHealthCheck\HealthCheck\Utility;
+use Symfony\Component\HttpFoundation\Request;
 use WP_REST_Server;
 use function apply_filters;
 use function is_user_logged_in;
@@ -31,7 +32,7 @@ class RestApi
             self::ROUTE,
             [
                 'methods' => WP_REST_Server::READABLE,
-                'callback' => [new Utility(), 'respond'],
+                'callback' => [new Utility(Request::createFromGlobals()), 'respond'],
                 'permission_callback' => fn(): bool => $this->permissionCallback(),
                 'schema' => $this->getParameterArgs(),
             ]

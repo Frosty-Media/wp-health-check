@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use FrostyMedia\WpHealthCheck\HealthCheck\Utility;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 putenv('WORDPRESS_RUN_TYPE=health-check'); // phpcs:ignore
@@ -34,7 +35,7 @@ if (!$wpConfig) {
     exit;
 }
 
-$utility = new Utility();
+$utility = new Utility(Request::createFromGlobals());
 
 nocache_headers();
 
