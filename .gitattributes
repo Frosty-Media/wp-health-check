@@ -8,5 +8,6 @@
 composer.lock export-ignore
 docker-compose.yml export-ignore
 phpcs-ruleset.xml export-ignore
+psalm.xml export-ignore
 phpstan.neon.dist export-ignore
 phpunit.xml export-ignore
