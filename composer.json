@@ -29,6 +29,7 @@
   },
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0.0",
+    "humanmade/psalm-plugin-wordpress": "^3.1",
     "php-stubs/wordpress-stubs": "~6.8",
     "phpcompatibility/php-compatibility": "*",
     "phpstan/extension-installer": "^1.4",

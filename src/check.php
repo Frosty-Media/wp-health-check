@@ -65,8 +65,8 @@ try {
     // If we didn't connect, we need to double-check `LudicrousDB` and manually bootstrap it.
     if (!$db_connect) {
         /**
+         * @psalm-suppress MissingFile
          * @psalm-suppress UndefinedClass
-         * @psalm-suppress UndefinedConstant
          */
         if (!$wpdb instanceof LudicrousDB) {
             if (file_exists(WPMU_PLUGIN_DIR . '/ludicrousdb/ludicrousdb.php')) {

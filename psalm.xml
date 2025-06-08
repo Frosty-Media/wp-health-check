@@ -8,14 +8,19 @@
     findUnusedBaselineEntry="true"
     findUnusedCode="true"
 >
+    <plugins>
+        <pluginClass class="PsalmWordPress\Plugin" />
+    </plugins>
+
     <stubs>
         <file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php"/>
     </stubs>
 
     <projectFiles>
-        <directory name="src" />
+        <directory name="mu-plugins"/>
+        <directory name="src"/>
         <ignoreFiles>
-            <directory name="vendor" />
+            <directory name="vendor"/>
         </ignoreFiles>
     </projectFiles>
-</psalm>
+<plugins><pluginClass class="PsalmWordPress\Plugin"/></plugins></psalm>

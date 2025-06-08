@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace FrostyMedia\WpHealthCheck\HealthCheck;
 
-use RedisCachePro\Diagnostics\Diagnostics;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestInterface;
-use TheFrosty\WpUtilities\Plugin\HttpFoundationRequestTrait;
 use WP_Error;
 use WP_REST_Request;
 use function apply_filters;
@@ -88,28 +85,49 @@ class Utility
     /**
      * Is the current response time too high?
      * @return bool If the timer is greater than the `MIN_RESPONSE_TIME_WARN` return true.
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function isResponseTimeTooHigh(): bool
     {
         return $this->stopTimer() > self::MINIMUM_RESPONSE_TIME_WARN;
     }
 
+    /**
+     * Get the time.
+     * @return int
+     * @psalm-suppress PossiblyUnusedMethod
+     */
     public function getTime(): int
     {
         return $this->time;
     }
 
+    /**
+     * Set the time.
+     * @param int $time
+     * @return $this
+     */
     protected function setTime(int $time): self
     {
         $this->time = $time;
         return $this;
     }
 
+    /**
+     * Get the timer.
+     * @return float
+     * @psalm-suppress PossiblyUnusedMethod
+     */
     public function getTimer(): float
     {
         return $this->timer;
     }
 
+    /**
+     * Set the timer.
+     * @param float $time
+     * @return $this
+     */
     protected function setTimer(float $time): self
     {
         $this->timer = $time;
@@ -130,6 +148,7 @@ class Utility
 
     /**
      * Respond with our JSON data.
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function respond(): never
     {
@@ -366,7 +385,7 @@ class Utility
             /**
              * @psalm-suppress UndefinedClass
              */
-            $diagnostics = (new Diagnostics($wp_object_cache))->toArray();
+            $diagnostics = (new \RedisCachePro\Diagnostics\Diagnostics($wp_object_cache))->toArray();
             $status['connector'] = $diagnostics['config']['connector']->text ?? self::STATUS_UNKNOWN;
             $status['cache'] = $diagnostics['config']['cache']->text ?? self::STATUS_UNKNOWN;
             $status['status'] = $diagnostics['general']['status']->text ?? self::STATUS_UNKNOWN;

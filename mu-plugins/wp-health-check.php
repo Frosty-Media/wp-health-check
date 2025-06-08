@@ -20,5 +20,4 @@ defined('ABSPATH') || exit;
 
 add_action('init', static function (): void {
     add_action('rest_api_init', [new RestApi(), 'initializeRoute']);
-});
-
+}, 10, 0);
