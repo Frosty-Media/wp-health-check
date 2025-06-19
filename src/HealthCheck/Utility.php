@@ -44,6 +44,7 @@ use const ABSPATH;
 use const ARRAY_FILTER_USE_BOTH;
 use const FILTER_VALIDATE_BOOLEAN;
 use const JSON_ERROR_NONE;
+use const JSON_PRETTY_PRINT;
 use const PHP_VERSION;
 
 /**
@@ -175,7 +176,11 @@ class Utility
         ?string $message = null
     ): never {
         $json = new JsonResponse($this->buildResponseArray($status, $message), $header_status ?? Response::HTTP_OK);
-        $json->prepare($this->request)->send();
+        $json->prepare($this->request);
+        if ($this->hasParam('pretty')) {
+            $json->setEncodingOptions(JSON_PRETTY_PRINT);
+        }
+        $json->send();
         session_write_close();
         exit;
     }
