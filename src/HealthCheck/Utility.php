@@ -229,7 +229,7 @@ class Utility
      */
     protected function getBuildInfo(string $key): ?string
     {
-        if ($this->hasParam(self::PARAM_BUILD)) {
+        if (!$this->hasParam(self::PARAM_BUILD)) {
             return null;
         }
         if (file_exists(ABSPATH . '.info')) {
@@ -253,7 +253,7 @@ class Utility
      */
     protected function getMysqlStatus(): ?array
     {
-        if ($this->hasParam(self::PARAM_MYSQL)) {
+        if (!$this->hasParam(self::PARAM_MYSQL)) {
             return null;
         }
         global $wpdb;
@@ -291,7 +291,7 @@ class Utility
      */
     protected function getPhpStatus(): ?array
     {
-        if ($this->hasParam(self::PARAM_PHP)) {
+        if (!$this->hasParam(self::PARAM_PHP)) {
             return null;
         }
         $status = [
@@ -309,7 +309,7 @@ class Utility
      */
     protected function getObjectCacheStatus(): ?array
     {
-        if ($this->hasParam(self::PARAM_OBJECT_CACHE)) {
+        if (!$this->hasParam(self::PARAM_OBJECT_CACHE)) {
             return null;
         }
         global $wp_object_cache, $wpdb;
@@ -434,7 +434,7 @@ class Utility
      */
     protected function getWpStatus(): ?array
     {
-        if ($this->hasParam(self::PARAM_WP)) {
+        if (!$this->hasParam(self::PARAM_WP)) {
             return null;
         }
         global $wp_db_version, $wp_version, $wpdb;
