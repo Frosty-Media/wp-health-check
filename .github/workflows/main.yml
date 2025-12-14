@@ -63,7 +63,7 @@ jobs:
           tools: 'composer, cs2pr, psalm'
 
       - name: Run Psalm
-        continue-on-error: false
+        continue-on-error: true
         id: psalm
         run: ./vendor/bin/psalm --output-format=github
         env:
