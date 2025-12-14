@@ -23,4 +23,7 @@
             <directory name="vendor"/>
         </ignoreFiles>
     </projectFiles>
-<plugins><pluginClass class="PsalmWordPress\Plugin"/></plugins></psalm>
+    <plugins>
+        <pluginClass class="PsalmWordPress\Plugin"/>
+    </plugins>
+</psalm>
